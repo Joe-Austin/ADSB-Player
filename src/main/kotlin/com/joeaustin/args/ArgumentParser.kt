@@ -1,4 +1,4 @@
-package args
+package com.joeaustin.args
 
 import java.lang.IllegalArgumentException
 import kotlin.collections.ArrayList
@@ -51,7 +51,7 @@ class ArgumentParser private constructor(
             argumentValues: List<String>,
             allowUnnamedArgs: Boolean = true,
             ignoreCase: Boolean = true
-        ): ArgumentParser? {
+        ): ArgumentParser {
             var pos = 0
 
             val argumentMap = HashMap<String, List<String>>()
@@ -81,7 +81,7 @@ class ArgumentParser private constructor(
                     } else {
                         val takeStart = pos + 1
                         val takeStop = takeStart + argument.inputCount
-                        val values = argumentValues.slice(takeStop..takeStop)
+                        val values = argumentValues.slice(takeStart until takeStop)
                         argumentMap[argument.name] = values
 
                         pos += argument.inputCount
@@ -92,29 +92,19 @@ class ArgumentParser private constructor(
                 pos++
             }
 
-            //Add required with defaults that are missing
+            //Add required, non-flags, with defaults that are missing
             options.forEach { option ->
                 val missing = !argumentMap.containsKey(option.name)
-                if (missing && option.required && option.defaultValues.size == option.inputCount) {
+                if (missing && option.defaultValues.isNotEmpty() && option.defaultValues.size == option.inputCount) {
                     argumentMap[option.name] = option.defaultValues
                 }
             }
 
-            val missingArgs = options.filter { option ->
-                option.required && !argumentMap.containsKey(option.name)
-            }
 
-            return if (missingArgs.isNotEmpty()) {
-                println("The following arguments were expected:")
-                missingArgs.forEach { arg ->
-                    println("    ${arg.name} (${arg.markers.joinToString()})")
-                }
-                null
-            } else {
-                val flags = argumentMap.toList().filter { (_, values) -> values.isEmpty() }.map { (key, _) -> key }
-                val prunedArgs = argumentMap.filter { (_, values) -> values.isNotEmpty() }
-                return ArgumentParser(flags, unnamedArguments, prunedArgs)
-            }
+            val flags = argumentMap.toList().filter { (_, values) -> values.isEmpty() }.map { (key, _) -> key }
+            val prunedArgs = argumentMap.filter { (_, values) -> values.isNotEmpty() }
+            return ArgumentParser(flags, unnamedArguments, prunedArgs)
+
         }
 
 
